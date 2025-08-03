@@ -63,9 +63,13 @@ import androidx.compose.ui.unit.dp
 import com.google.ai.edge.gallery.data.Model
 import com.google.ai.edge.gallery.data.ModelDownloadStatusType
 import com.google.ai.edge.gallery.data.Task
+import com.google.ai.edge.gallery.ui.common.chat.ChatMessageText
+import com.google.ai.edge.gallery.ui.common.chat.ChatSide
 import com.google.ai.edge.gallery.ui.common.ModelPageAppBar
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel
 import com.google.ai.edge.gallery.ui.modelmanager.PagerScrollState
+import com.google.ai.edge.gallery.data.MedicalAnalysisRepository
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlin.math.absoluteValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -96,6 +100,8 @@ fun ChatView(
   onStopButtonClicked: (Model) -> Unit = {},
   chatInputType: ChatInputType = ChatInputType.TEXT,
   showStopButtonInInputWhenInProgress: Boolean = false,
+  customTitle: String? = null,
+  hasPatientData: Boolean = false,
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
@@ -103,14 +109,18 @@ fun ChatView(
   var selectedImage by remember { mutableStateOf<Bitmap?>(null) }
   var showImageViewer by remember { mutableStateOf(false) }
 
+  val initialPageIndex = task.models.indexOf(selectedModel).let { index ->
+    if (index >= 0) index else 0
+  }
   val pagerState =
     rememberPagerState(
-      initialPage = task.models.indexOf(selectedModel),
+      initialPage = initialPageIndex,
       pageCount = { task.models.size },
     )
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
   var navigatingUp by remember { mutableStateOf(false) }
+
 
   val handleNavigateUp = {
     navigatingUp = true
@@ -178,6 +188,7 @@ fun ChatView(
         isResettingSession = uiState.isResettingSession,
         inProgress = uiState.inProgress,
         modelPreparing = uiState.preparing,
+        customTitle = customTitle,
         onResetSessionClicked = onResetSessionClicked,
         onConfigChanged = { old, new ->
           viewModel.addConfigChangedMessage(
@@ -190,6 +201,7 @@ fun ChatView(
         onModelSelected = { model ->
           scope.launch { pagerState.animateScrollToPage(task.models.indexOf(model)) }
         },
+
       )
     },
   ) { innerPadding ->

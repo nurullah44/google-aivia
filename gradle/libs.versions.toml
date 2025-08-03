@@ -14,6 +14,7 @@ serializationJson = "1.7.3"
 materialIconExtended = "1.7.8"
 workRuntime = "2.10.0"
 dataStore = "1.1.7"
+coil = "2.6.0"
 gson = "2.12.1"
 lifecycleProcess = "2.8.7"
 protobuf = "0.9.5"
@@ -56,6 +57,8 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 material-icon-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconExtended" }
 androidx-work-runtime = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntime" }
 androidx-datastore = { group = "androidx.datastore", name = "datastore", version.ref = "dataStore" }
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "dataStore" }
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 com-google-code-gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
 mediapipe-tasks-text = { group = "com.google.mediapipe", name = "tasks-text", version.ref = "mediapipeTasksText" }

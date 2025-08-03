@@ -19,8 +19,12 @@ package com.google.ai.edge.gallery.data
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Forum
+import androidx.compose.material.icons.outlined.HealthAndSafety
+import androidx.compose.material.icons.outlined.LocalHospital
+import androidx.compose.material.icons.outlined.MedicalServices
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Mms
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableLongStateOf
@@ -33,6 +37,10 @@ enum class TaskType(val label: String, val id: String) {
   LLM_PROMPT_LAB(label = "Prompt Lab", id = "llm_prompt_lab"),
   LLM_ASK_IMAGE(label = "Ask Image", id = "llm_ask_image"),
   LLM_ASK_AUDIO(label = "Audio Scribe", id = "llm_ask_audio"),
+  
+  // Healthcare Professional Tasks
+  HEALTHCARE_IMAGE_ANALYSIS(label = "Medical Image Analysis", id = "healthcare_image"),
+  
   TEST_TASK_1(label = "Test task 1", id = "test_task_1"),
   TEST_TASK_2(label = "Test task 2", id = "test_task_2"),
 }
@@ -121,12 +129,41 @@ val TASK_LLM_ASK_AUDIO =
     textInputPlaceHolderRes = R.string.text_input_placeholder_llm_chat,
   )
 
-/** All tasks. */
-val TASKS: List<Task> =
+// Healthcare Professional Tasks
+val TASK_HEALTHCARE_IMAGE_ANALYSIS =
+  Task(
+    type = TaskType.HEALTHCARE_IMAGE_ANALYSIS,
+    icon = Icons.Outlined.MedicalServices,
+    models = mutableListOf(),
+    description = "Analyze medical images for clinical documentation and educational purposes. 100% private, HIPAA-compliant processing.",
+    docUrl = "https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference/android",
+    sourceCodeUrl = "",
+    textInputPlaceHolderRes = R.string.text_input_placeholder_llm_chat,
+    agentNameRes = R.string.chat_generic_agent_name,
+  )
+
+
+
+/** General AI tasks. */
+val GENERAL_TASKS: List<Task> =
   listOf(TASK_LLM_ASK_IMAGE, TASK_LLM_ASK_AUDIO, TASK_LLM_PROMPT_LAB, TASK_LLM_CHAT)
 
+/** Healthcare professional tasks. */
+val HEALTHCARE_TASKS: List<Task> =
+  listOf(TASK_HEALTHCARE_IMAGE_ANALYSIS)
+
+/** All tasks (default to general). */
+val TASKS: List<Task> = GENERAL_TASKS
+
+/** Get tasks based on professional mode. */
+fun getTasksForMode(isHealthcareMode: Boolean): List<Task> {
+  return if (isHealthcareMode) HEALTHCARE_TASKS else GENERAL_TASKS
+}
+
 fun getModelByName(name: String): Model? {
-  for (task in TASKS) {
+  // Search in all tasks (both general and healthcare)
+  val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS
+  for (task in allTasks) {
     for (model in task.models) {
       if (model.name == name) {
         return model
@@ -137,7 +174,9 @@ fun getModelByName(name: String): Model? {
 }
 
 fun processTasks() {
-  for ((index, task) in TASKS.withIndex()) {
+  // Process all tasks (both general and healthcare)
+  val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS
+  for ((index, task) in allTasks.withIndex()) {
     task.index = index
     for (model in task.models) {
       model.preProcess()

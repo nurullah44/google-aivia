@@ -50,6 +50,7 @@ import androidx.navigation.navArgument
 import com.google.ai.edge.gallery.data.Model
 import com.google.ai.edge.gallery.data.TASK_LLM_ASK_AUDIO
 import com.google.ai.edge.gallery.data.TASK_LLM_ASK_IMAGE
+import com.google.ai.edge.gallery.data.TASK_HEALTHCARE_IMAGE_ANALYSIS
 import com.google.ai.edge.gallery.data.TASK_LLM_CHAT
 import com.google.ai.edge.gallery.data.TASK_LLM_PROMPT_LAB
 import com.google.ai.edge.gallery.data.Task
@@ -71,6 +72,10 @@ import com.google.ai.edge.gallery.ui.llmsingleturn.LlmSingleTurnScreen
 import com.google.ai.edge.gallery.ui.llmsingleturn.LlmSingleTurnViewModel
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManager
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel
+import com.google.ai.edge.gallery.ui.medical.MedicalAnalysisDestination
+import com.google.ai.edge.gallery.ui.medical.MedicalAnalysisScreen
+import com.google.ai.edge.gallery.ui.medical.MedicalAnalysisViewModel
+import com.google.ai.edge.gallery.ui.medical.PatientAnalysisData
 
 private const val TAG = "AGGalleryNavGraph"
 private const val ROUTE_PLACEHOLDER = "placeholder"
@@ -230,20 +235,53 @@ fun GalleryNavHost(
 
     // Ask image.
     composable(
-      route = "${LlmAskImageDestination.route}/{modelName}",
-      arguments = listOf(navArgument("modelName") { type = NavType.StringType }),
+      route = "${LlmAskImageDestination.route}/{modelName}?title={title}&context={context}&patientData={patientData}",
+      arguments = listOf(
+        navArgument("modelName") { type = NavType.StringType },
+        navArgument("title") { 
+          type = NavType.StringType
+          defaultValue = ""
+        },
+        navArgument("context") { 
+          type = NavType.StringType
+          defaultValue = ""
+        },
+        navArgument("patientData") { 
+          type = NavType.BoolType
+          defaultValue = false
+        }
+      ),
       enterTransition = { slideEnter() },
       exitTransition = { slideExit() },
     ) { backStackEntry ->
       val viewModel: LlmAskImageViewModel = hiltViewModel()
+      val customTitle = backStackEntry.arguments?.getString("title")?.takeIf { it.isNotEmpty() }
+      val context = backStackEntry.arguments?.getString("context")?.takeIf { it.isNotEmpty() }
+      val hasPatientData = backStackEntry.arguments?.getBoolean("patientData") ?: false
+      
+      // Use healthcare task if medical context
+      val task = when (context) {
+        "medical" -> TASK_HEALTHCARE_IMAGE_ANALYSIS
+        else -> TASK_LLM_ASK_IMAGE
+      }
 
-      getModelFromNavigationParam(backStackEntry, TASK_LLM_ASK_IMAGE)?.let { defaultModel ->
-        modelManagerViewModel.selectModel(defaultModel)
+      getModelFromNavigationParam(backStackEntry, task)?.let { defaultModel ->
+        // For medical context, ensure we select from medical task models
+        val modelToSelect = if (context == "medical") {
+          task.models.find { it.name == defaultModel.name } ?: task.models.firstOrNull() ?: defaultModel
+        } else {
+          defaultModel
+        }
+        
+        modelManagerViewModel.selectModel(modelToSelect)
 
         LlmAskImageScreen(
           viewModel = viewModel,
           modelManagerViewModel = modelManagerViewModel,
           navigateUp = { navController.navigateUp() },
+          customTitle = customTitle,
+          overrideTask = if (context == "medical") task else null,
+          hasPatientData = hasPatientData,
         )
       }
     }
@@ -266,6 +304,24 @@ fun GalleryNavHost(
           navigateUp = { navController.navigateUp() },
         )
       }
+    }
+
+    // Medical Analysis Screen
+    composable(
+      route = MedicalAnalysisDestination.route,
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) {
+      val viewModel: MedicalAnalysisViewModel = hiltViewModel()
+      
+      MedicalAnalysisScreen(
+        viewModel = viewModel,
+        navigateUp = { navController.navigateUp() },
+        navigateToAnalysis = { modelName ->
+          // Navigate to LLM chat screen with patient data and medical context
+          navController.navigate("${LlmAskImageDestination.route}/${modelName}?title=Medical Image Analysis&context=medical&patientData=true")
+        }
+      )
     }
   }
 
@@ -301,6 +357,12 @@ fun navigateToTaskScreen(
     TaskType.LLM_ASK_AUDIO -> navController.navigate("${LlmAskAudioDestination.route}/${modelName}")
     TaskType.LLM_PROMPT_LAB ->
       navController.navigate("${LlmSingleTurnDestination.route}/${modelName}")
+    
+    // Healthcare Professional Tasks - route to new medical analysis screen
+    TaskType.HEALTHCARE_IMAGE_ANALYSIS -> 
+      navController.navigate(MedicalAnalysisDestination.route)
+
+    
     TaskType.TEST_TASK_1 -> {}
     TaskType.TEST_TASK_2 -> {}
   }

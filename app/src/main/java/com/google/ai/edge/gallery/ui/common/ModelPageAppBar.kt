@@ -21,15 +21,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.MapsUgc
 import androidx.compose.material.icons.rounded.Tune
+
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
+
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -70,6 +74,7 @@ fun ModelPageAppBar(
   isResettingSession: Boolean = false,
   onResetSessionClicked: (Model) -> Unit = {},
   canShowResetSessionButton: Boolean = false,
+  customTitle: String? = null,
   onConfigChanged: (oldConfigValues: Map<String, Any>, newConfigValues: Map<String, Any>) -> Unit =
     { _, _ ->
     },
@@ -98,7 +103,7 @@ fun ModelPageAppBar(
             contentDescription = "",
           )
           Text(
-            task.type.label,
+            customTitle ?: task.type.label,
             style = MaterialTheme.typography.titleMedium,
             color = getTaskIconColor(task = task),
           )
@@ -125,6 +130,7 @@ fun ModelPageAppBar(
       val downloadSucceeded = curDownloadStatus?.status == ModelDownloadStatusType.SUCCEEDED
       val showConfigButton = model.configs.isNotEmpty() && downloadSucceeded
       val showResetSessionButton = canShowResetSessionButton && downloadSucceeded
+      
       Box(modifier = Modifier.size(42.dp), contentAlignment = Alignment.Center) {
         var configButtonOffset = 0.dp
         if (showConfigButton && canShowResetSessionButton) {

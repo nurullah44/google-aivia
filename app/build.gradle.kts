@@ -81,6 +81,8 @@ dependencies {
   implementation(libs.material.icon.extended)
   implementation(libs.androidx.work.runtime)
   implementation(libs.androidx.datastore)
+  implementation(libs.androidx.datastore.preferences)
+  // implementation(libs.coil.compose)
   implementation(libs.com.google.code.gson)
   implementation(libs.androidx.lifecycle.process)
   implementation(libs.mediapipe.tasks.text)

@@ -20,7 +20,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.google.ai.edge.gallery.common.processLlmResponse
 import com.google.ai.edge.gallery.data.Model
+import com.google.ai.edge.gallery.data.PromptTemplate
 import com.google.ai.edge.gallery.data.Task
+import com.google.ai.edge.gallery.data.TaskType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -50,6 +52,9 @@ data class ChatUiState(
    * showing the stats below it.
    */
   val showingStatsByModel: Map<String, MutableSet<ChatMessage>> = mapOf(),
+
+  /** A map of model names to the currently selected system prompt template. */
+  val systemPromptByModel: Map<String, PromptTemplate?> = mapOf(),
 )
 
 /** ViewModel responsible for managing the chat UI state and handling chat-related operations. */
@@ -242,13 +247,56 @@ abstract class ChatViewModel(val task: Task) : ViewModel() {
 
   private fun createUiState(task: Task): ChatUiState {
     val messagesByModel: MutableMap<String, MutableList<ChatMessage>> = mutableMapOf()
+    val systemPromptByModel: MutableMap<String, PromptTemplate?> = mutableMapOf()
     for (model in task.models) {
       val messages: MutableList<ChatMessage> = mutableListOf()
-      if (model.llmPromptTemplates.isNotEmpty()) {
+      
+      // Set default template for healthcare tasks
+      val defaultTemplate = when (task.type) {
+        TaskType.HEALTHCARE_IMAGE_ANALYSIS -> {
+          model.llmPromptTemplates.find { it.title == "Clinical Image Description" }
+        }
+        
+        else -> null
+      }
+      
+      systemPromptByModel[model.name] = defaultTemplate
+      
+      // Don't show prompt templates message for healthcare tasks since they have default
+      if (model.llmPromptTemplates.isNotEmpty() && defaultTemplate == null) {
         messages.add(ChatMessagePromptTemplates(templates = model.llmPromptTemplates))
       }
       messagesByModel[model.name] = messages
     }
-    return ChatUiState(messagesByModel = messagesByModel)
+    return ChatUiState(
+      messagesByModel = messagesByModel, 
+      systemPromptByModel = systemPromptByModel
+    )
+  }
+
+  fun setSystemPrompt(model: Model, template: PromptTemplate) {
+    val newSystemPrompts = _uiState.value.systemPromptByModel.toMutableMap()
+    newSystemPrompts[model.name] = template
+    _uiState.update { _uiState.value.copy(systemPromptByModel = newSystemPrompts) }
+  }
+
+  fun clearSystemPrompt(model: Model) {
+    val newSystemPrompts = _uiState.value.systemPromptByModel.toMutableMap()
+    newSystemPrompts[model.name] = null
+    _uiState.update { _uiState.value.copy(systemPromptByModel = newSystemPrompts) }
+  }
+
+  fun getSystemPrompt(model: Model): PromptTemplate? {
+    return _uiState.value.systemPromptByModel[model.name]
+  }
+
+  fun removeMessage(model: Model, message: ChatMessage) {
+    val newMessagesByModel = _uiState.value.messagesByModel.toMutableMap()
+    val newMessages = newMessagesByModel[model.name]?.toMutableList()
+    if (newMessages != null) {
+      newMessages.remove(message)
+      newMessagesByModel[model.name] = newMessages
+      _uiState.update { _uiState.value.copy(messagesByModel = newMessagesByModel) }
+    }
   }
 }

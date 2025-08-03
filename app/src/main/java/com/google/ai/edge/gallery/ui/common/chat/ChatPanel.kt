@@ -305,9 +305,16 @@ fun ChatPanel(
                   message = message,
                   task = task,
                   onPromptClicked = { template ->
-                    onSendMessage(
-                      selectedModel,
-                      listOf(ChatMessageText(content = template.prompt, side = ChatSide.USER)),
+                    // Set as system prompt instead of sending as message
+                    viewModel.setSystemPrompt(selectedModel, template)
+                    // Remove the prompt templates message
+                    viewModel.removeMessage(selectedModel, message)
+                    // Show confirmation that template was selected
+                    viewModel.addMessage(
+                      selectedModel, 
+                      ChatMessageInfo(
+                        content = "✓ Template selected: ${template.title}"
+                      )
                     )
                   },
                 )
@@ -535,10 +542,9 @@ fun ChatPanel(
             )
           },
           onStopButtonClicked = onStopButtonClicked,
-          //          showPromptTemplatesInMenu = isLlmTask && notLlmStartScreen,
-          showPromptTemplatesInMenu = false,
+          showPromptTemplatesInMenu = false, // Template selection moved to top bar
           showImagePickerInMenu =
-            selectedModel.llmSupportImage && task.type === TaskType.LLM_ASK_IMAGE,
+            selectedModel.llmSupportImage && (task.type === TaskType.LLM_ASK_IMAGE || task.type === TaskType.HEALTHCARE_IMAGE_ANALYSIS),
           showAudioItemsInMenu =
             selectedModel.llmSupportAudio && task.type === TaskType.LLM_ASK_AUDIO,
           showStopButtonWhenInProgress = showStopButtonInInputWhenInProgress,
