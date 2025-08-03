@@ -17,6 +17,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
+ * Analysis type enum
+ */
+enum class AnalysisType {
+    SHORT, DETAILED
+}
+
+/**
  * UI State for Medical Analysis Screen
  */
 data class MedicalAnalysisUiState(
@@ -34,6 +41,7 @@ data class MedicalAnalysisUiState(
     val historySource: HistorySource = HistorySource.MANUAL,
     val selectedImageUri: Uri? = null,
     val isFormValid: Boolean = false,
+    val selectedAnalysisType: AnalysisType = AnalysisType.SHORT,
     
     // Analysis state
     val isAnalyzing: Boolean = false,
@@ -145,6 +153,13 @@ class MedicalAnalysisViewModel @Inject constructor(
     }
 
     /**
+     * Update selected analysis type
+     */
+    fun updateAnalysisType(analysisType: AnalysisType) {
+        _uiState.value = _uiState.value.copy(selectedAnalysisType = analysisType)
+    }
+
+    /**
      * Validate patient form
      */
     private fun validateForm(): Boolean {
@@ -191,19 +206,20 @@ class MedicalAnalysisViewModel @Inject constructor(
     fun saveAnalysisResult(
         patientData: PatientAnalysisData,
         analysisText: String,
-        modelUsed: String,
-        imagePath: String?
+        modelUsed: String
     ) {
         viewModelScope.launch {
             try {
                 val analysis = MedicalAnalysis(
                     analysisText = analysisText,
+                    timestamp = System.currentTimeMillis(),
                     modelUsed = modelUsed
                 )
                 
-                medicalAnalysisRepository.saveAnalysisRecord(
+                // Use the new function that handles image URI to permanent path conversion
+                medicalAnalysisRepository.saveAnalysisRecordWithImageUri(
                     patientInfo = patientData.patientInfo,
-                    imagePath = imagePath,
+                    imageUri = patientData.imageUri,
                     analysis = analysis
                 )
                 
@@ -234,6 +250,28 @@ class MedicalAnalysisViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
+    }
+
+    /**
+     * Show analysis details (for now just show a simple message)
+     */
+    fun showAnalysisDetails(record: AnalysisRecord) {
+        // For now, we can show the analysis in a simple way
+        // In a real app, this might navigate to a detail screen
+        _uiState.value = _uiState.value.copy(
+            currentAnalysis = record.analysis.analysisText,
+            showAnalysisResult = true
+        )
+    }
+
+    /**
+     * Hide analysis details
+     */
+    fun hideAnalysisDetails() {
+        _uiState.value = _uiState.value.copy(
+            currentAnalysis = null,
+            showAnalysisResult = false
+        )
     }
 }
 

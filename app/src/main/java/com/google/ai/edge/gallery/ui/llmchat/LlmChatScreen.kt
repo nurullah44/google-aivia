@@ -35,6 +35,10 @@ import com.google.ai.edge.gallery.ui.common.chat.ChatMessageImage
 import com.google.ai.edge.gallery.ui.common.chat.ChatMessageText
 import com.google.ai.edge.gallery.ui.common.chat.ChatView
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Navigation destination data */
 object LlmChatDestination {
@@ -194,6 +198,28 @@ fun ChatViewWrapper(
     viewModel = viewModel,
     modelManagerViewModel = modelManagerViewModel,
     hasPatientData = hasPatientData,
+    onSaveAnalysisClicked = { model, message ->
+      if (hasPatientData && message is ChatMessageText) {
+        // Get medical repository through Hilt entry point
+        val appContext = context.applicationContext as com.google.ai.edge.gallery.GalleryApplication
+        val medicalRepository = appContext.medicalAnalysisRepository
+        
+        // Launch coroutine to save analysis
+        CoroutineScope(Dispatchers.IO).launch {
+          medicalRepository.saveAnalysis(message.content, model.name)
+          
+          // Show confirmation message on main thread
+          withContext(Dispatchers.Main) {
+            viewModel.addMessage(
+              model = model,
+              message = com.google.ai.edge.gallery.ui.common.chat.ChatMessageInfo(
+                content = "✅ Analysis saved successfully!"
+              )
+            )
+          }
+        }
+      }
+    },
     onSendMessage = { model, messages ->
       for (message in messages) {
         viewModel.addMessage(model = model, message = message)

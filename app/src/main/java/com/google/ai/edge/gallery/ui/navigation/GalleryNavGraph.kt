@@ -73,6 +73,8 @@ import com.google.ai.edge.gallery.ui.llmsingleturn.LlmSingleTurnViewModel
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManager
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel
 import com.google.ai.edge.gallery.ui.medical.MedicalAnalysisDestination
+import com.google.ai.edge.gallery.ui.medical.MedicalAnalysisDetailDestination
+import com.google.ai.edge.gallery.ui.medical.MedicalAnalysisDetailScreen
 import com.google.ai.edge.gallery.ui.medical.MedicalAnalysisScreen
 import com.google.ai.edge.gallery.ui.medical.MedicalAnalysisViewModel
 import com.google.ai.edge.gallery.ui.medical.PatientAnalysisData
@@ -320,7 +322,22 @@ fun GalleryNavHost(
         navigateToAnalysis = { modelName ->
           // Navigate to LLM chat screen with patient data and medical context
           navController.navigate("${LlmAskImageDestination.route}/${modelName}?title=Medical Image Analysis&context=medical&patientData=true")
+        },
+        navigateToDetail = { recordId ->
+          navController.navigate("${MedicalAnalysisDetailDestination.route}/${recordId}")
         }
+      )
+    }
+
+    // Medical Analysis Detail Screen
+    composable(
+      route = MedicalAnalysisDetailDestination.routeWithArgs,
+      arguments = listOf(navArgument(MedicalAnalysisDetailDestination.recordIdArg) { type = NavType.StringType }),
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) {
+      MedicalAnalysisDetailScreen(
+        navigateUp = { navController.navigateUp() }
       )
     }
   }

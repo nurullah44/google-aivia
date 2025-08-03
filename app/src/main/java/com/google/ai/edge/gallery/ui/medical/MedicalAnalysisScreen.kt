@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -13,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ArrowBack
@@ -32,10 +34,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-// import coil.compose.AsyncImage
+import coil.compose.AsyncImage
 import com.google.ai.edge.gallery.data.AnalysisRecord
 import com.google.ai.edge.gallery.data.HistorySource
-// import java.io.File
+import java.io.File
 
 object MedicalAnalysisDestination {
     const val route = "medical_analysis"
@@ -44,9 +46,10 @@ object MedicalAnalysisDestination {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedicalAnalysisScreen(
-    viewModel: MedicalAnalysisViewModel = hiltViewModel(),
-    navigateUp: () -> Unit,
-    navigateToAnalysis: (String) -> Unit
+  viewModel: MedicalAnalysisViewModel = hiltViewModel(),
+  navigateUp: () -> Unit,
+  navigateToAnalysis: (String) -> Unit,
+  navigateToDetail: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -155,7 +158,13 @@ fun MedicalAnalysisScreen(
                     items(uiState.filteredRecords) { record ->
                         AnalysisRecordCard(
                             record = record,
-                            onClick = { /* TODO: Navigate to detail */ }
+                            onClick = { 
+                                // Navigate to detail screen
+                                navigateToDetail(record.id)
+                            },
+                            onDelete = {
+                                viewModel.deleteAnalysisRecord(record.id)
+                            }
                         )
                     }
                 }
@@ -179,8 +188,19 @@ fun MedicalAnalysisScreen(
                     // Navigate to Gemma 3n chat with medical context and patient data
                     navigateToAnalysis("Gemma-3n-E2B-it-int4")
                 }
-            }
+            },
+            onAnalysisTypeChange = viewModel::updateAnalysisType
         )
+    }
+
+    // Analysis Details Dialog
+    if (uiState.showAnalysisResult) {
+        uiState.currentAnalysis?.let { analysisText ->
+            AnalysisDetailsDialog(
+                analysisText = analysisText,
+                onDismiss = { viewModel.hideAnalysisDetails() }
+            )
+        }
     }
 
     // Error Snackbar
@@ -193,9 +213,41 @@ fun MedicalAnalysisScreen(
 }
 
 @Composable
+private fun AnalysisDetailsDialog(
+    analysisText: String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Analysis Details") },
+        text = {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    Text(
+                        text = analysisText,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+@Composable
 private fun AnalysisRecordCard(
     record: AnalysisRecord,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -204,41 +256,64 @@ private fun AnalysisRecordCard(
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Patient Image Placeholder
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
+        Box {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    Icons.Outlined.Image,
-                    contentDescription = "Medical Image",
-                    tint = MaterialTheme.colorScheme.outline
+                // Patient Image
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(80.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (record.imagePath != null) {
+                        AsyncImage(
+                            model = record.imagePath, // Use path directly, Coil handles both File and URI
+                            contentDescription = "Medical Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            Icons.Outlined.Image,
+                            contentDescription = "Medical Image",
+                            tint = MaterialTheme.colorScheme.outline
+                        )
+                    }
+                }
+
+                // Patient Name
+                Text(
+                    text = record.getPatientDisplayName(),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                // Date
+                Text(
+                    text = record.getFormattedDate(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
-
-            // Patient Name
-            Text(
-                text = record.getPatientDisplayName(),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            // Date
-            Text(
-                text = record.getFormattedDate(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline
-            )
+            
+            // Delete button
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.align(Alignment.TopEnd)
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
         }
     }
 }
@@ -253,7 +328,8 @@ private fun PatientFormDialog(
     onHistoryChange: (String) -> Unit,
     onSelectTextFile: () -> Unit,
     onSelectImage: () -> Unit,
-    onAnalyze: () -> Unit
+    onAnalyze: () -> Unit,
+    onAnalysisTypeChange: (AnalysisType) -> Unit = {}
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -348,6 +424,39 @@ private fun PatientFormDialog(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
+
+                // Analysis Type Selection
+                Text(
+                    text = "Analysis Type",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        onClick = { onAnalysisTypeChange(AnalysisType.SHORT) },
+                        label = { Text("Short Analysis") },
+                        selected = uiState.selectedAnalysisType == AnalysisType.SHORT,
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        onClick = { onAnalysisTypeChange(AnalysisType.DETAILED) },
+                        label = { Text("Detailed Analysis") },
+                        selected = uiState.selectedAnalysisType == AnalysisType.DETAILED,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Text(
+                    text = when (uiState.selectedAnalysisType) {
+                        AnalysisType.SHORT -> "Quick overview with key findings"
+                        AnalysisType.DETAILED -> "Comprehensive analysis with detailed explanations"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
             }
         },
         confirmButton = {
@@ -355,7 +464,12 @@ private fun PatientFormDialog(
                 onClick = onAnalyze,
                 enabled = uiState.isFormValid
             ) {
-                Text("Analyze")
+                Text(
+                    when (uiState.selectedAnalysisType) {
+                        AnalysisType.SHORT -> "Quick Analysis"
+                        AnalysisType.DETAILED -> "Detailed Analysis"
+                    }
+                )
             }
         },
         dismissButton = {

@@ -43,6 +43,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Refresh
@@ -116,6 +117,8 @@ fun ChatPanel(
   onImageSelected: (Bitmap) -> Unit = {},
   chatInputType: ChatInputType = ChatInputType.TEXT,
   showStopButtonInInputWhenInProgress: Boolean = false,
+  onSaveAnalysisClicked: (Model, ChatMessage) -> Unit = { _, _ -> },
+  hasPatientData: Boolean = false,
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
@@ -433,6 +436,21 @@ fun ChatPanel(
                             )
                           }
                         },
+                        enabled = !uiState.inProgress,
+                      )
+                    }
+                    
+                    // Save Analysis button for medical analysis
+                    if (
+                      hasPatientData &&
+                        message is ChatMessageText &&
+                        message.latencyMs >= 0 &&
+                        message.content.isNotBlank()
+                    ) {
+                      MessageActionButton(
+                        label = "Save Analysis",
+                        icon = Icons.Outlined.Save,
+                        onClick = { onSaveAnalysisClicked(selectedModel, message) },
                         enabled = !uiState.inProgress,
                       )
                     }
