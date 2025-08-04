@@ -30,6 +30,7 @@ import com.google.ai.edge.gallery.data.DefaultDownloadRepository
 import com.google.ai.edge.gallery.data.DownloadRepository
 import com.google.ai.edge.gallery.data.MedicalAnalysisRepository
 import com.google.ai.edge.gallery.data.CropAnalysisRepository
+import com.google.ai.edge.gallery.data.TeacherLessonRepository
 import com.google.ai.edge.gallery.proto.Settings
 import dagger.Module
 import dagger.Provides
@@ -102,5 +103,14 @@ internal object AppModule {
     @ApplicationContext context: Context
   ): CropAnalysisRepository {
     return CropAnalysisRepository(context)
+  }
+
+  // Provides TeacherLessonRepository
+  @Provides
+  @Singleton
+  fun provideTeacherLessonRepository(
+    @ApplicationContext context: Context
+  ): TeacherLessonRepository {
+    return TeacherLessonRepository(context)
   }
 }

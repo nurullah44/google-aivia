@@ -59,12 +59,18 @@ fun LlmChatScreen(
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
   viewModel: LlmChatViewModel,
+  customTitle: String? = null,
+  overrideTask: Task? = null,
+  hasLessonData: Boolean = false,
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
     modelManagerViewModel = modelManagerViewModel,
     navigateUp = navigateUp,
     modifier = modifier,
+    customTitle = customTitle,
+    overrideTask = overrideTask,
+    hasLessonData = hasLessonData,
   )
 }
 
@@ -118,6 +124,7 @@ fun ChatViewWrapper(
   chatInputType: ChatInputType = ChatInputType.TEXT,
   hasPatientData: Boolean = false,
   hasCropData: Boolean = false,
+  hasLessonData: Boolean = false,
 ) {
   val context = LocalContext.current
 
@@ -276,12 +283,61 @@ fun ChatViewWrapper(
     }
   }
 
+  // Handle lesson data injection for teacher lesson planning
+  LaunchedEffect(hasLessonData) {
+    if (hasLessonData) {
+      // Get teacher lesson repository through Hilt entry point
+      val appContext = context.applicationContext as com.google.ai.edge.gallery.GalleryApplication
+      val teacherRepository = appContext.teacherLessonRepository
+      val lessonData = teacherRepository.getCurrentLessonData()
+      if (lessonData != null) {
+        val selectedModel = modelManagerViewModel.uiState.value.selectedModel
+        
+        // Add planning message
+        viewModel.addMessage(
+          model = selectedModel,
+          message = com.google.ai.edge.gallery.ui.common.chat.ChatMessageInfo(
+            content = "📚 Creating lesson plan for ${lessonData.subject} - ${lessonData.topic}..."
+          )
+        )
+        
+        // Create lesson context message
+        val lessonContext = teacherRepository.formatLessonDataForPlanning(lessonData)
+        
+        // Add lesson info as user message
+        viewModel.addMessage(
+          model = selectedModel,
+          message = ChatMessageText(
+            content = lessonContext,
+            side = com.google.ai.edge.gallery.ui.common.chat.ChatSide.USER
+          )
+        )
+        
+        // Trigger automatic lesson plan generation
+        viewModel.generateResponse(
+          model = selectedModel,
+          input = lessonContext,
+          images = emptyList(),
+          onError = {
+            viewModel.addMessage(
+              model = selectedModel,
+              message = com.google.ai.edge.gallery.ui.common.chat.ChatMessageWarning(
+                content = "Error occurred during lesson plan generation. Please try again."
+              )
+            )
+          }
+        )
+      }
+    }
+  }
+
   ChatView(
     task = overrideTask ?: viewModel.task,
     viewModel = viewModel,
     modelManagerViewModel = modelManagerViewModel,
     hasPatientData = hasPatientData,
     hasCropData = hasCropData,
+    hasLessonData = hasLessonData,
     onSaveAnalysisClicked = { model, message ->
       if (hasPatientData && message is ChatMessageText) {
         // Get medical repository through Hilt entry point
@@ -317,6 +373,25 @@ fun ChatViewWrapper(
               model = model,
               message = com.google.ai.edge.gallery.ui.common.chat.ChatMessageInfo(
                 content = "✅ Crop analysis saved successfully!"
+              )
+            )
+          }
+        }
+      } else if (hasLessonData && message is ChatMessageText) {
+        // Get teacher lesson repository through Hilt entry point
+        val appContext = context.applicationContext as com.google.ai.edge.gallery.GalleryApplication
+        val teacherRepository = appContext.teacherLessonRepository
+        
+        // Launch coroutine to save lesson plan
+        CoroutineScope(Dispatchers.IO).launch {
+          teacherRepository.saveLessonPlan(message.content, model.name)
+          
+          // Show confirmation message on main thread
+          withContext(Dispatchers.Main) {
+            viewModel.addMessage(
+              model = model,
+              message = com.google.ai.edge.gallery.ui.common.chat.ChatMessageInfo(
+                content = "✅ Lesson plan saved successfully!"
               )
             )
           }

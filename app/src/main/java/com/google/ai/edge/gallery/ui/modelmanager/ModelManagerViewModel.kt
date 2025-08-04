@@ -39,6 +39,7 @@ import com.google.ai.edge.gallery.data.ModelDownloadStatusType
 import com.google.ai.edge.gallery.data.GENERAL_TASKS
 import com.google.ai.edge.gallery.data.HEALTHCARE_TASKS
 import com.google.ai.edge.gallery.data.AGRICULTURE_TASKS
+import com.google.ai.edge.gallery.data.TEACHER_TASKS
 import com.google.ai.edge.gallery.data.TASK_LLM_ASK_AUDIO
 import com.google.ai.edge.gallery.data.TASK_LLM_ASK_IMAGE
 import com.google.ai.edge.gallery.data.TASK_LLM_CHAT
@@ -46,6 +47,7 @@ import com.google.ai.edge.gallery.data.TASK_LLM_PROMPT_LAB
 
 import com.google.ai.edge.gallery.data.TASK_HEALTHCARE_IMAGE_ANALYSIS
 import com.google.ai.edge.gallery.data.TASK_FARMER_CROP_ANALYSIS
+import com.google.ai.edge.gallery.data.TASK_TEACHER_LESSON_PLANNER
 import com.google.ai.edge.gallery.data.Task
 import com.google.ai.edge.gallery.data.TaskType
 import com.google.ai.edge.gallery.data.createLlmChatConfigs
@@ -208,7 +210,7 @@ constructor(
 
     // Delete model from the list if model is imported as a local model.
     if (model.imported) {
-    val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS + AGRICULTURE_TASKS
+      val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS + AGRICULTURE_TASKS + TEACHER_TASKS
       for (curTask in allTasks) {
         val index = curTask.models.indexOf(model)
         if (index >= 0) {
@@ -299,7 +301,8 @@ constructor(
         TaskType.LLM_ASK_AUDIO,
         TaskType.LLM_PROMPT_LAB,
         TaskType.HEALTHCARE_IMAGE_ANALYSIS,
-        TaskType.FARMER_CROP_ANALYSIS ->
+        TaskType.FARMER_CROP_ANALYSIS,
+        TaskType.TEACHER_LESSON_PLANNER ->
           LlmChatModelHelper.initialize(context = context, model = model, onDone = onDone)
 
         TaskType.TEST_TASK_1 -> {}
@@ -318,7 +321,8 @@ constructor(
         TaskType.LLM_ASK_IMAGE,
         TaskType.LLM_ASK_AUDIO,
         TaskType.HEALTHCARE_IMAGE_ANALYSIS,
-        TaskType.FARMER_CROP_ANALYSIS -> LlmChatModelHelper.cleanUp(model = model)
+        TaskType.FARMER_CROP_ANALYSIS,
+        TaskType.TEACHER_LESSON_PLANNER -> LlmChatModelHelper.cleanUp(model = model)
 
         TaskType.TEST_TASK_1 -> {}
         TaskType.TEST_TASK_2 -> {}
@@ -690,6 +694,8 @@ constructor(
         TASK_LLM_ASK_IMAGE.models.clear()
         TASK_LLM_ASK_AUDIO.models.clear()
         TASK_HEALTHCARE_IMAGE_ANALYSIS.models.clear()
+        TASK_FARMER_CROP_ANALYSIS.models.clear()
+        TASK_TEACHER_LESSON_PLANNER.models.clear()
         
         
         for (allowedModel in modelAllowlist.models) {
@@ -700,7 +706,8 @@ constructor(
           val model = allowedModel.toModel()
           if (allowedModel.taskTypes.contains(TASK_LLM_CHAT.type.id)) {
             TASK_LLM_CHAT.models.add(model)
-
+            // Also add to teacher lesson planner (reuse same LLM models)
+            TASK_TEACHER_LESSON_PLANNER.models.add(model)
           }
           if (allowedModel.taskTypes.contains(TASK_LLM_PROMPT_LAB.type.id)) {
             TASK_LLM_PROMPT_LAB.models.add(model)
@@ -786,7 +793,7 @@ constructor(
   private fun createUiState(): ModelManagerUiState {
     val modelDownloadStatus: MutableMap<String, ModelDownloadStatus> = mutableMapOf()
     val modelInstances: MutableMap<String, ModelInitializationStatus> = mutableMapOf()
-    val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS + AGRICULTURE_TASKS
+    val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS + AGRICULTURE_TASKS + TEACHER_TASKS
     for (task in allTasks) {
       for (model in task.models) {
         modelDownloadStatus[model.name] = getModelDownloadStatus(model = model)
@@ -805,12 +812,15 @@ constructor(
       // Add to task.
       TASK_LLM_CHAT.models.add(model)
       TASK_LLM_PROMPT_LAB.models.add(model)
+      TASK_TEACHER_LESSON_PLANNER.models.add(model)
       if (model.llmSupportImage) {
         TASK_LLM_ASK_IMAGE.models.add(model)
         // Add to healthcare image analysis with healthcare prompts
         TASK_HEALTHCARE_IMAGE_ANALYSIS.models.add(model.copy(
           llmPromptTemplates = HealthcarePrompts.MEDICAL_IMAGE_ANALYSIS_PROMPTS
         ))
+        // Add to farmer crop analysis
+        TASK_FARMER_CROP_ANALYSIS.models.add(model)
       }
       if (model.llmSupportAudio) {
         TASK_LLM_ASK_AUDIO.models.add(model)

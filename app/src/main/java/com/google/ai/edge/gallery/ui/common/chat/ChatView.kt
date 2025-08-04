@@ -103,6 +103,7 @@ fun ChatView(
   customTitle: String? = null,
   hasPatientData: Boolean = false,
   hasCropData: Boolean = false,
+  hasLessonData: Boolean = false,
   onSaveAnalysisClicked: (Model, ChatMessage) -> Unit = { _, _ -> },
 ) {
   val uiState by viewModel.uiState.collectAsState()
@@ -261,6 +262,7 @@ fun ChatView(
               onSaveAnalysisClicked = onSaveAnalysisClicked,
               hasPatientData = hasPatientData,
               hasCropData = hasCropData,
+              hasLessonData = hasLessonData,
             )
           }
         }

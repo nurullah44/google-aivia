@@ -119,6 +119,7 @@ fun ChatPanel(
   showStopButtonInInputWhenInProgress: Boolean = false,
   hasPatientData: Boolean = false,
   hasCropData: Boolean = false,
+  hasLessonData: Boolean = false,
   onSaveAnalysisClicked: (Model, ChatMessage) -> Unit = { _, _ -> },
 ) {
   val uiState by viewModel.uiState.collectAsState()
@@ -465,6 +466,21 @@ fun ChatPanel(
                     ) {
                       MessageActionButton(
                         label = "Save Crop Analysis",
+                        icon = Icons.Outlined.Save,
+                        onClick = { onSaveAnalysisClicked(selectedModel, message) },
+                        enabled = !uiState.inProgress,
+                      )
+                    }
+                    
+                    // Save Lesson Plan button for teacher lesson planning
+                    if (
+                      hasLessonData &&
+                        message is ChatMessageText &&
+                        message.latencyMs >= 0 &&
+                        message.content.isNotBlank()
+                    ) {
+                      MessageActionButton(
+                        label = "Save Lesson Plan",
                         icon = Icons.Outlined.Save,
                         onClick = { onSaveAnalysisClicked(selectedModel, message) },
                         enabled = !uiState.inProgress,
