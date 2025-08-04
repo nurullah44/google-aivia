@@ -41,6 +41,9 @@ enum class TaskType(val label: String, val id: String) {
   // Healthcare Professional Tasks
   HEALTHCARE_IMAGE_ANALYSIS(label = "Medical Image Analysis", id = "healthcare_image"),
   
+  // Teacher Professional Tasks
+  TEACHER_LESSON_PLANNER(label = "Lesson Plan Generator", id = "teacher_lesson"),
+  
   TEST_TASK_1(label = "Test task 1", id = "test_task_1"),
   TEST_TASK_2(label = "Test task 2", id = "test_task_2"),
 }
@@ -142,6 +145,19 @@ val TASK_HEALTHCARE_IMAGE_ANALYSIS =
     agentNameRes = R.string.chat_generic_agent_name,
   )
 
+// Teacher Professional Tasks
+val TASK_TEACHER_LESSON_PLANNER =
+  Task(
+    type = TaskType.TEACHER_LESSON_PLANNER,
+    icon = Icons.Outlined.School,
+    models = mutableListOf(),
+    description = "Generate comprehensive lesson plans for any subject and grade level. 100% private, on-device AI assistance for educators.",
+    docUrl = "https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference/android",
+    sourceCodeUrl = "",
+    textInputPlaceHolderRes = R.string.text_input_placeholder_llm_chat,
+    agentNameRes = R.string.chat_generic_agent_name,
+  )
+
 
 
 /** General AI tasks. */
@@ -152,6 +168,10 @@ val GENERAL_TASKS: List<Task> =
 val HEALTHCARE_TASKS: List<Task> =
   listOf(TASK_HEALTHCARE_IMAGE_ANALYSIS)
 
+/** Teacher professional tasks. */
+val TEACHER_TASKS: List<Task> =
+  listOf(TASK_TEACHER_LESSON_PLANNER)
+
 /** All tasks (default to general). */
 val TASKS: List<Task> = GENERAL_TASKS
 
@@ -160,9 +180,14 @@ fun getTasksForMode(isHealthcareMode: Boolean): List<Task> {
   return if (isHealthcareMode) HEALTHCARE_TASKS else GENERAL_TASKS
 }
 
+/** Get tasks for teacher mode. */
+fun getTasksForTeacherMode(): List<Task> {
+  return TEACHER_TASKS
+}
+
 fun getModelByName(name: String): Model? {
-  // Search in all tasks (both general and healthcare)
-  val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS
+  // Search in all tasks (general, healthcare, and teacher)
+  val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS + TEACHER_TASKS
   for (task in allTasks) {
     for (model in task.models) {
       if (model.name == name) {
@@ -174,8 +199,8 @@ fun getModelByName(name: String): Model? {
 }
 
 fun processTasks() {
-  // Process all tasks (both general and healthcare)
-  val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS
+  // Process all tasks (general, healthcare, and teacher)
+  val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS + TEACHER_TASKS
   for ((index, task) in allTasks.withIndex()) {
     task.index = index
     for (model in task.models) {

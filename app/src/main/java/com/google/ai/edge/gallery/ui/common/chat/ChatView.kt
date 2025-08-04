@@ -102,6 +102,7 @@ fun ChatView(
   showStopButtonInInputWhenInProgress: Boolean = false,
   customTitle: String? = null,
   hasPatientData: Boolean = false,
+  hasLessonData: Boolean = false,
   onSaveAnalysisClicked: (Model, ChatMessage) -> Unit = { _, _ -> },
 ) {
   val uiState by viewModel.uiState.collectAsState()
@@ -259,6 +260,7 @@ fun ChatView(
               showStopButtonInInputWhenInProgress = showStopButtonInInputWhenInProgress,
               onSaveAnalysisClicked = onSaveAnalysisClicked,
               hasPatientData = hasPatientData,
+              hasLessonData = hasLessonData,
             )
           }
         }
