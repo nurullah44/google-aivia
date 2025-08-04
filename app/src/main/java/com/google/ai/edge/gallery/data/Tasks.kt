@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Mms
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Widgets
+import androidx.compose.material.icons.outlined.Agriculture
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -40,6 +41,9 @@ enum class TaskType(val label: String, val id: String) {
   
   // Healthcare Professional Tasks
   HEALTHCARE_IMAGE_ANALYSIS(label = "Medical Image Analysis", id = "healthcare_image"),
+  
+  // Agriculture Professional Tasks
+  FARMER_CROP_ANALYSIS(label = "Crop Analysis", id = "farmer_crop_analysis"),
   
   TEST_TASK_1(label = "Test task 1", id = "test_task_1"),
   TEST_TASK_2(label = "Test task 2", id = "test_task_2"),
@@ -142,6 +146,19 @@ val TASK_HEALTHCARE_IMAGE_ANALYSIS =
     agentNameRes = R.string.chat_generic_agent_name,
   )
 
+// Agriculture Professional Tasks
+val TASK_FARMER_CROP_ANALYSIS =
+  Task(
+    type = TaskType.FARMER_CROP_ANALYSIS,
+    icon = Icons.Outlined.Agriculture,
+    models = mutableListOf(),
+    description = "Analyze crop images for disease detection and agricultural management. 100% private, on-device processing.",
+    docUrl = "https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference/android",
+    sourceCodeUrl = "",
+    textInputPlaceHolderRes = R.string.text_input_placeholder_llm_chat,
+    agentNameRes = R.string.chat_generic_agent_name,
+  )
+
 
 
 /** General AI tasks. */
@@ -152,17 +169,25 @@ val GENERAL_TASKS: List<Task> =
 val HEALTHCARE_TASKS: List<Task> =
   listOf(TASK_HEALTHCARE_IMAGE_ANALYSIS)
 
+/** Agriculture professional tasks. */
+val AGRICULTURE_TASKS: List<Task> =
+  listOf(TASK_FARMER_CROP_ANALYSIS)
+
 /** All tasks (default to general). */
 val TASKS: List<Task> = GENERAL_TASKS
 
 /** Get tasks based on professional mode. */
-fun getTasksForMode(isHealthcareMode: Boolean): List<Task> {
-  return if (isHealthcareMode) HEALTHCARE_TASKS else GENERAL_TASKS
+fun getTasksForMode(isHealthcareMode: Boolean, isAgricultureMode: Boolean = false): List<Task> {
+  return when {
+    isHealthcareMode -> HEALTHCARE_TASKS
+    isAgricultureMode -> AGRICULTURE_TASKS
+    else -> GENERAL_TASKS
+  }
 }
 
 fun getModelByName(name: String): Model? {
-  // Search in all tasks (both general and healthcare)
-  val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS
+  // Search in all tasks (general, healthcare, and agriculture)
+  val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS + AGRICULTURE_TASKS
   for (task in allTasks) {
     for (model in task.models) {
       if (model.name == name) {
@@ -174,8 +199,8 @@ fun getModelByName(name: String): Model? {
 }
 
 fun processTasks() {
-  // Process all tasks (both general and healthcare)
-  val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS
+  // Process all tasks (general, healthcare, and agriculture)
+  val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS + AGRICULTURE_TASKS
   for ((index, task) in allTasks.withIndex()) {
     task.index = index
     for (model in task.models) {

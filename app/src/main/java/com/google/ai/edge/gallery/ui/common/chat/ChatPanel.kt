@@ -102,13 +102,13 @@ enum class ChatInputType {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatPanel(
-  modelManagerViewModel: ModelManagerViewModel,
   task: Task,
   selectedModel: Model,
   viewModel: ChatViewModel,
+  modelManagerViewModel: ModelManagerViewModel,
   onSendMessage: (Model, List<ChatMessage>) -> Unit,
   onRunAgainClicked: (Model, ChatMessage) -> Unit,
-  onBenchmarkClicked: (Model, ChatMessage, warmUpIterations: Int, benchmarkIterations: Int) -> Unit,
+  onBenchmarkClicked: (Model, ChatMessage, Int, Int) -> Unit,
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
   onStreamImageMessage: (Model, ChatMessageImage) -> Unit = { _, _ -> },
@@ -117,8 +117,9 @@ fun ChatPanel(
   onImageSelected: (Bitmap) -> Unit = {},
   chatInputType: ChatInputType = ChatInputType.TEXT,
   showStopButtonInInputWhenInProgress: Boolean = false,
-  onSaveAnalysisClicked: (Model, ChatMessage) -> Unit = { _, _ -> },
   hasPatientData: Boolean = false,
+  hasCropData: Boolean = false,
+  onSaveAnalysisClicked: (Model, ChatMessage) -> Unit = { _, _ -> },
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
@@ -448,7 +449,22 @@ fun ChatPanel(
                         message.content.isNotBlank()
                     ) {
                       MessageActionButton(
-                        label = "Save Analysis",
+                        label = "Save Medical Analysis",
+                        icon = Icons.Outlined.Save,
+                        onClick = { onSaveAnalysisClicked(selectedModel, message) },
+                        enabled = !uiState.inProgress,
+                      )
+                    }
+                    
+                    // Save Analysis button for crop analysis  
+                    if (
+                      hasCropData &&
+                        message is ChatMessageText &&
+                        message.latencyMs >= 0 &&
+                        message.content.isNotBlank()
+                    ) {
+                      MessageActionButton(
+                        label = "Save Crop Analysis",
                         icon = Icons.Outlined.Save,
                         onClick = { onSaveAnalysisClicked(selectedModel, message) },
                         enabled = !uiState.inProgress,
@@ -562,7 +578,7 @@ fun ChatPanel(
           onStopButtonClicked = onStopButtonClicked,
           showPromptTemplatesInMenu = false, // Template selection moved to top bar
           showImagePickerInMenu =
-            selectedModel.llmSupportImage && (task.type === TaskType.LLM_ASK_IMAGE || task.type === TaskType.HEALTHCARE_IMAGE_ANALYSIS),
+            selectedModel.llmSupportImage && (task.type === TaskType.LLM_ASK_IMAGE || task.type === TaskType.HEALTHCARE_IMAGE_ANALYSIS || task.type === TaskType.FARMER_CROP_ANALYSIS),
           showAudioItemsInMenu =
             selectedModel.llmSupportAudio && task.type === TaskType.LLM_ASK_AUDIO,
           showStopButtonWhenInProgress = showStopButtonInInputWhenInProgress,

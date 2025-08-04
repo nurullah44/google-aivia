@@ -28,6 +28,8 @@ import com.google.ai.edge.gallery.data.DataStoreRepository
 import com.google.ai.edge.gallery.data.DefaultDataStoreRepository
 import com.google.ai.edge.gallery.data.DefaultDownloadRepository
 import com.google.ai.edge.gallery.data.DownloadRepository
+import com.google.ai.edge.gallery.data.MedicalAnalysisRepository
+import com.google.ai.edge.gallery.data.CropAnalysisRepository
 import com.google.ai.edge.gallery.proto.Settings
 import dagger.Module
 import dagger.Provides
@@ -82,5 +84,23 @@ internal object AppModule {
     lifecycleProvider: AppLifecycleProvider,
   ): DownloadRepository {
     return DefaultDownloadRepository(context, lifecycleProvider)
+  }
+
+  // Provides MedicalAnalysisRepository
+  @Provides
+  @Singleton
+  fun provideMedicalAnalysisRepository(
+    @ApplicationContext context: Context
+  ): MedicalAnalysisRepository {
+    return MedicalAnalysisRepository(context)
+  }
+
+  // Provides CropAnalysisRepository
+  @Provides
+  @Singleton
+  fun provideCropAnalysisRepository(
+    @ApplicationContext context: Context
+  ): CropAnalysisRepository {
+    return CropAnalysisRepository(context)
   }
 }

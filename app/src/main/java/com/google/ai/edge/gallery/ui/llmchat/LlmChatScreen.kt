@@ -77,6 +77,7 @@ fun LlmAskImageScreen(
   customTitle: String? = null,
   overrideTask: Task? = null,
   hasPatientData: Boolean = false,
+  hasCropData: Boolean = false,
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
@@ -87,6 +88,7 @@ fun LlmAskImageScreen(
     overrideTask = overrideTask,
     chatInputType = ChatInputType.TEXT,
     hasPatientData = hasPatientData,
+    hasCropData = hasCropData,
   )
 }
 
@@ -115,6 +117,7 @@ fun ChatViewWrapper(
   overrideTask: Task? = null,
   chatInputType: ChatInputType = ChatInputType.TEXT,
   hasPatientData: Boolean = false,
+  hasCropData: Boolean = false,
 ) {
   val context = LocalContext.current
 
@@ -193,11 +196,92 @@ fun ChatViewWrapper(
     }
   }
 
+  // Handle crop data injection for agricultural analysis
+  LaunchedEffect(hasCropData) {
+    if (hasCropData) {
+      // Get crop repository through Hilt entry point
+      val appContext = context.applicationContext as com.google.ai.edge.gallery.GalleryApplication
+      val cropRepository = appContext.cropAnalysisRepository
+      val cropData = cropRepository.getCurrentCropData()
+      android.util.Log.d("CropChatDebug", "hasCropData: $hasCropData, cropData: $cropData")
+      if (cropData != null) {
+        val (cropInfo, imageUri) = cropData
+        val selectedModel = modelManagerViewModel.uiState.value.selectedModel
+        android.util.Log.d("CropChatDebug", "Crop info found: ${cropInfo.cropType}, model: ${selectedModel.name}")
+        
+        // Add analyzing message
+        viewModel.addMessage(
+          model = selectedModel,
+          message = com.google.ai.edge.gallery.ui.common.chat.ChatMessageInfo(
+            content = "🌾 Analyzing crop image for ${cropInfo.cropType} in ${cropInfo.location}..."
+          )
+        )
+        
+        // Create crop context message
+        val cropContext = cropRepository.formatCropDataForAnalysis(cropInfo)
+        
+        // Add crop info as user message
+        viewModel.addMessage(
+          model = selectedModel,
+          message = ChatMessageText(
+            content = cropContext,
+            side = com.google.ai.edge.gallery.ui.common.chat.ChatSide.USER
+          )
+        )
+        
+        // Convert URI to Bitmap and add image message
+        try {
+          val inputStream = context.contentResolver.openInputStream(imageUri)
+          val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+          inputStream?.close()
+          
+          if (bitmap != null) {
+            val imageMessage = com.google.ai.edge.gallery.ui.common.chat.ChatMessageImage(
+              bitmap = bitmap,
+              imageBitMap = bitmap.asImageBitmap(),
+              side = com.google.ai.edge.gallery.ui.common.chat.ChatSide.USER
+            )
+            viewModel.addMessage(
+              model = selectedModel,
+              message = imageMessage
+            )
+            
+            // Trigger automatic analysis
+            viewModel.generateResponse(
+              model = selectedModel,
+              input = cropContext,
+              images = listOf(bitmap),
+              onError = {
+                viewModel.addMessage(
+                  model = selectedModel,
+                  message = com.google.ai.edge.gallery.ui.common.chat.ChatMessageWarning(
+                    content = "Error occurred during crop analysis. Please try again."
+                  )
+                )
+              }
+            )
+          }
+        } catch (e: Exception) {
+          android.util.Log.e("CropChatDebug", "Error loading crop image", e)
+          viewModel.addMessage(
+            model = selectedModel,
+            message = com.google.ai.edge.gallery.ui.common.chat.ChatMessageWarning(
+              content = "Error loading crop image. Please try again."
+            )
+          )
+        }
+      } else {
+        android.util.Log.e("CropChatDebug", "Crop data is null!")
+      }
+    }
+  }
+
   ChatView(
     task = overrideTask ?: viewModel.task,
     viewModel = viewModel,
     modelManagerViewModel = modelManagerViewModel,
     hasPatientData = hasPatientData,
+    hasCropData = hasCropData,
     onSaveAnalysisClicked = { model, message ->
       if (hasPatientData && message is ChatMessageText) {
         // Get medical repository through Hilt entry point
@@ -214,6 +298,25 @@ fun ChatViewWrapper(
               model = model,
               message = com.google.ai.edge.gallery.ui.common.chat.ChatMessageInfo(
                 content = "✅ Analysis saved successfully!"
+              )
+            )
+          }
+        }
+      } else if (hasCropData && message is ChatMessageText) {
+        // Get crop repository through Hilt entry point
+        val appContext = context.applicationContext as com.google.ai.edge.gallery.GalleryApplication
+        val cropRepository = appContext.cropAnalysisRepository
+        
+        // Launch coroutine to save analysis
+        CoroutineScope(Dispatchers.IO).launch {
+          cropRepository.saveAnalysis(message.content, model.name)
+          
+          // Show confirmation message on main thread
+          withContext(Dispatchers.Main) {
+            viewModel.addMessage(
+              model = model,
+              message = com.google.ai.edge.gallery.ui.common.chat.ChatMessageInfo(
+                content = "✅ Crop analysis saved successfully!"
               )
             )
           }

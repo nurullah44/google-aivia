@@ -38,12 +38,14 @@ import com.google.ai.edge.gallery.data.ModelDownloadStatus
 import com.google.ai.edge.gallery.data.ModelDownloadStatusType
 import com.google.ai.edge.gallery.data.GENERAL_TASKS
 import com.google.ai.edge.gallery.data.HEALTHCARE_TASKS
+import com.google.ai.edge.gallery.data.AGRICULTURE_TASKS
 import com.google.ai.edge.gallery.data.TASK_LLM_ASK_AUDIO
 import com.google.ai.edge.gallery.data.TASK_LLM_ASK_IMAGE
 import com.google.ai.edge.gallery.data.TASK_LLM_CHAT
 import com.google.ai.edge.gallery.data.TASK_LLM_PROMPT_LAB
 
 import com.google.ai.edge.gallery.data.TASK_HEALTHCARE_IMAGE_ANALYSIS
+import com.google.ai.edge.gallery.data.TASK_FARMER_CROP_ANALYSIS
 import com.google.ai.edge.gallery.data.Task
 import com.google.ai.edge.gallery.data.TaskType
 import com.google.ai.edge.gallery.data.createLlmChatConfigs
@@ -206,7 +208,7 @@ constructor(
 
     // Delete model from the list if model is imported as a local model.
     if (model.imported) {
-      val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS
+    val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS + AGRICULTURE_TASKS
       for (curTask in allTasks) {
         val index = curTask.models.indexOf(model)
         if (index >= 0) {
@@ -296,7 +298,8 @@ constructor(
         TaskType.LLM_ASK_IMAGE,
         TaskType.LLM_ASK_AUDIO,
         TaskType.LLM_PROMPT_LAB,
-        TaskType.HEALTHCARE_IMAGE_ANALYSIS ->
+        TaskType.HEALTHCARE_IMAGE_ANALYSIS,
+        TaskType.FARMER_CROP_ANALYSIS ->
           LlmChatModelHelper.initialize(context = context, model = model, onDone = onDone)
 
         TaskType.TEST_TASK_1 -> {}
@@ -314,7 +317,8 @@ constructor(
         TaskType.LLM_PROMPT_LAB,
         TaskType.LLM_ASK_IMAGE,
         TaskType.LLM_ASK_AUDIO,
-        TaskType.HEALTHCARE_IMAGE_ANALYSIS -> LlmChatModelHelper.cleanUp(model = model)
+        TaskType.HEALTHCARE_IMAGE_ANALYSIS,
+        TaskType.FARMER_CROP_ANALYSIS -> LlmChatModelHelper.cleanUp(model = model)
 
         TaskType.TEST_TASK_1 -> {}
         TaskType.TEST_TASK_2 -> {}
@@ -708,6 +712,8 @@ constructor(
             TASK_HEALTHCARE_IMAGE_ANALYSIS.models.add(model.copy(
               llmPromptTemplates = HealthcarePrompts.MEDICAL_IMAGE_ANALYSIS_PROMPTS
             ))
+            // Add same model to farmer crop analysis
+            TASK_FARMER_CROP_ANALYSIS.models.add(model)
           }
           if (allowedModel.taskTypes.contains(TASK_LLM_ASK_AUDIO.type.id)) {
             TASK_LLM_ASK_AUDIO.models.add(model)
@@ -780,7 +786,7 @@ constructor(
   private fun createUiState(): ModelManagerUiState {
     val modelDownloadStatus: MutableMap<String, ModelDownloadStatus> = mutableMapOf()
     val modelInstances: MutableMap<String, ModelInitializationStatus> = mutableMapOf()
-    val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS
+    val allTasks = GENERAL_TASKS + HEALTHCARE_TASKS + AGRICULTURE_TASKS
     for (task in allTasks) {
       for (model in task.models) {
         modelDownloadStatus[model.name] = getModelDownloadStatus(model = model)

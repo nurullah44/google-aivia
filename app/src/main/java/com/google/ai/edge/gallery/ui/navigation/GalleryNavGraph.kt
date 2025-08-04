@@ -78,6 +78,12 @@ import com.google.ai.edge.gallery.ui.medical.MedicalAnalysisDetailScreen
 import com.google.ai.edge.gallery.ui.medical.MedicalAnalysisScreen
 import com.google.ai.edge.gallery.ui.medical.MedicalAnalysisViewModel
 import com.google.ai.edge.gallery.ui.medical.PatientAnalysisData
+import com.google.ai.edge.gallery.ui.farmer.CropAnalysisDestination
+import com.google.ai.edge.gallery.ui.farmer.CropAnalysisDetailDestination
+import com.google.ai.edge.gallery.ui.farmer.CropAnalysisDetailScreen
+import com.google.ai.edge.gallery.ui.farmer.CropAnalysisScreen
+import com.google.ai.edge.gallery.ui.farmer.CropAnalysisViewModel
+import com.google.ai.edge.gallery.ui.farmer.CropAnalysisData
 
 private const val TAG = "AGGalleryNavGraph"
 private const val ROUTE_PLACEHOLDER = "placeholder"
@@ -237,7 +243,7 @@ fun GalleryNavHost(
 
     // Ask image.
     composable(
-      route = "${LlmAskImageDestination.route}/{modelName}?title={title}&context={context}&patientData={patientData}",
+      route = "${LlmAskImageDestination.route}/{modelName}?title={title}&context={context}&patientData={patientData}&cropData={cropData}",
       arguments = listOf(
         navArgument("modelName") { type = NavType.StringType },
         navArgument("title") { 
@@ -251,6 +257,10 @@ fun GalleryNavHost(
         navArgument("patientData") { 
           type = NavType.BoolType
           defaultValue = false
+        },
+        navArgument("cropData") { 
+          type = NavType.BoolType
+          defaultValue = false
         }
       ),
       enterTransition = { slideEnter() },
@@ -260,19 +270,22 @@ fun GalleryNavHost(
       val customTitle = backStackEntry.arguments?.getString("title")?.takeIf { it.isNotEmpty() }
       val context = backStackEntry.arguments?.getString("context")?.takeIf { it.isNotEmpty() }
       val hasPatientData = backStackEntry.arguments?.getBoolean("patientData") ?: false
+      val hasCropData = backStackEntry.arguments?.getBoolean("cropData") ?: false
       
-      // Use healthcare task if medical context
+      // Use healthcare task if medical context, farmer task if crop context
       val task = when (context) {
         "medical" -> TASK_HEALTHCARE_IMAGE_ANALYSIS
+        "crop" -> com.google.ai.edge.gallery.data.TASK_FARMER_CROP_ANALYSIS
         else -> TASK_LLM_ASK_IMAGE
       }
 
       getModelFromNavigationParam(backStackEntry, task)?.let { defaultModel ->
-        // For medical context, ensure we select from medical task models
-        val modelToSelect = if (context == "medical") {
-          task.models.find { it.name == defaultModel.name } ?: task.models.firstOrNull() ?: defaultModel
-        } else {
-          defaultModel
+        // For medical/crop context, ensure we select from appropriate task models
+        val modelToSelect = when (context) {
+          "medical", "crop" -> {
+            task.models.find { it.name == defaultModel.name } ?: task.models.firstOrNull() ?: defaultModel
+          }
+          else -> defaultModel
         }
         
         modelManagerViewModel.selectModel(modelToSelect)
@@ -282,8 +295,9 @@ fun GalleryNavHost(
           modelManagerViewModel = modelManagerViewModel,
           navigateUp = { navController.navigateUp() },
           customTitle = customTitle,
-          overrideTask = if (context == "medical") task else null,
+          overrideTask = if (context == "medical" || context == "crop") task else null,
           hasPatientData = hasPatientData,
+          hasCropData = hasCropData,
         )
       }
     }
@@ -340,6 +354,39 @@ fun GalleryNavHost(
         navigateUp = { navController.navigateUp() }
       )
     }
+
+    // Crop Analysis Screen
+    composable(
+      route = CropAnalysisDestination.route,
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) {
+      val viewModel: CropAnalysisViewModel = hiltViewModel()
+      
+      CropAnalysisScreen(
+        viewModel = viewModel,
+        navigateUp = { navController.navigateUp() },
+        navigateToAnalysis = { modelName ->
+          // Navigate to LLM chat screen with crop data and crop context
+          navController.navigate("${LlmAskImageDestination.route}/${modelName}?title=Crop Analysis&context=crop&patientData=false&cropData=true")
+        },
+        navigateToDetail = { recordId ->
+          navController.navigate("${CropAnalysisDetailDestination.route}/${recordId}")
+        }
+      )
+    }
+
+    // Crop Analysis Detail Screen
+    composable(
+      route = CropAnalysisDetailDestination.routeWithArgs,
+      arguments = listOf(navArgument(CropAnalysisDetailDestination.recordIdArg) { type = NavType.StringType }),
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) {
+      CropAnalysisDetailScreen(
+        navigateUp = { navController.navigateUp() }
+      )
+    }
   }
 
   // Handle incoming intents for deep links
@@ -379,6 +426,9 @@ fun navigateToTaskScreen(
     TaskType.HEALTHCARE_IMAGE_ANALYSIS -> 
       navController.navigate(MedicalAnalysisDestination.route)
 
+    // Agriculture Professional Tasks - route to new crop analysis screen
+    TaskType.FARMER_CROP_ANALYSIS -> 
+      navController.navigate(CropAnalysisDestination.route)
     
     TaskType.TEST_TASK_1 -> {}
     TaskType.TEST_TASK_2 -> {}

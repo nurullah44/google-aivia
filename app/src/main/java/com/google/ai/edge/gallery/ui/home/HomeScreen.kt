@@ -464,7 +464,9 @@ fun HomeScreen(
       title = "Farmer",
       subtitle = "Agricultural AI for crop management",
       tasks = listOf(
-        "Crop Analysis" to { /* TODO */ },
+        "Crop Analysis" to { 
+          navigateToTaskScreen(uiState.tasks.find { it.type.id == "farmer_crop_analysis" }!!)
+        },
         "Resource Planning" to { /* TODO */ },
         "Growth Tracking" to { /* TODO */ }
       ),
