@@ -53,7 +53,6 @@ import com.google.ai.edge.gallery.data.TASK_LLM_ASK_IMAGE
 import com.google.ai.edge.gallery.data.TASK_HEALTHCARE_IMAGE_ANALYSIS
 import com.google.ai.edge.gallery.data.TASK_LLM_CHAT
 import com.google.ai.edge.gallery.data.TASK_LLM_PROMPT_LAB
-import com.google.ai.edge.gallery.data.TASK_TEACHER_LESSON_PLANNER
 import com.google.ai.edge.gallery.data.Task
 import com.google.ai.edge.gallery.data.TaskType
 import com.google.ai.edge.gallery.data.getModelByName
@@ -79,11 +78,6 @@ import com.google.ai.edge.gallery.ui.medical.MedicalAnalysisDetailScreen
 import com.google.ai.edge.gallery.ui.medical.MedicalAnalysisScreen
 import com.google.ai.edge.gallery.ui.medical.MedicalAnalysisViewModel
 import com.google.ai.edge.gallery.ui.medical.PatientAnalysisData
-import com.google.ai.edge.gallery.ui.teacher.TeacherLessonDestination
-import com.google.ai.edge.gallery.ui.teacher.TeacherLessonDetailDestination
-import com.google.ai.edge.gallery.ui.teacher.TeacherLessonDetailScreen
-import com.google.ai.edge.gallery.ui.teacher.TeacherLessonScreen
-import com.google.ai.edge.gallery.ui.teacher.TeacherLessonViewModel
 
 private const val TAG = "AGGalleryNavGraph"
 private const val ROUTE_PLACEHOLDER = "placeholder"
@@ -203,53 +197,20 @@ fun GalleryNavHost(
 
     // LLM chat demos.
     composable(
-      route = "${LlmChatDestination.route}/{modelName}?title={title}&context={context}&lessonData={lessonData}",
-      arguments = listOf(
-        navArgument("modelName") { type = NavType.StringType },
-        navArgument("title") { 
-          type = NavType.StringType
-          defaultValue = ""
-        },
-        navArgument("context") { 
-          type = NavType.StringType
-          defaultValue = ""
-        },
-        navArgument("lessonData") { 
-          type = NavType.BoolType
-          defaultValue = false
-        }
-      ),
+      route = "${LlmChatDestination.route}/{modelName}",
+      arguments = listOf(navArgument("modelName") { type = NavType.StringType }),
       enterTransition = { slideEnter() },
       exitTransition = { slideExit() },
     ) { backStackEntry ->
       val viewModel: LlmChatViewModel = hiltViewModel(backStackEntry)
-      val customTitle = backStackEntry.arguments?.getString("title")?.takeIf { it.isNotEmpty() }
-      val context = backStackEntry.arguments?.getString("context")?.takeIf { it.isNotEmpty() }
-      val hasLessonData = backStackEntry.arguments?.getBoolean("lessonData") ?: false
-      
-      // Use teacher task if teacher context
-      val task = when (context) {
-        "teacher" -> TASK_TEACHER_LESSON_PLANNER
-        else -> TASK_LLM_CHAT
-      }
 
-      getModelFromNavigationParam(backStackEntry, task)?.let { defaultModel ->
-        // For teacher context, ensure we select from teacher task models
-        val modelToSelect = if (context == "teacher") {
-          task.models.find { it.name == defaultModel.name } ?: task.models.firstOrNull() ?: defaultModel
-        } else {
-          defaultModel
-        }
-        
-        modelManagerViewModel.selectModel(modelToSelect)
+      getModelFromNavigationParam(backStackEntry, TASK_LLM_CHAT)?.let { defaultModel ->
+        modelManagerViewModel.selectModel(defaultModel)
 
         LlmChatScreen(
           viewModel = viewModel,
           modelManagerViewModel = modelManagerViewModel,
           navigateUp = { navController.navigateUp() },
-          customTitle = customTitle,
-          overrideTask = if (context == "teacher") task else null,
-          hasLessonData = hasLessonData,
         )
       }
     }
@@ -379,39 +340,6 @@ fun GalleryNavHost(
         navigateUp = { navController.navigateUp() }
       )
     }
-
-    // Teacher Lesson Screen
-    composable(
-      route = TeacherLessonDestination.route,
-      enterTransition = { slideEnter() },
-      exitTransition = { slideExit() },
-    ) {
-      val viewModel: TeacherLessonViewModel = hiltViewModel()
-      
-      TeacherLessonScreen(
-        viewModel = viewModel,
-        navigateUp = { navController.navigateUp() },
-        navigateToPlanning = { modelName ->
-          // Navigate to LLM chat screen with lesson data and teacher context
-          navController.navigate("${LlmChatDestination.route}/${modelName}?title=Lesson Plan Generator&context=teacher&lessonData=true")
-        },
-        navigateToDetail = { recordId ->
-          navController.navigate("${TeacherLessonDetailDestination.route}/${recordId}")
-        }
-      )
-    }
-
-    // Teacher Lesson Detail Screen
-    composable(
-      route = TeacherLessonDetailDestination.routeWithArgs,
-      arguments = listOf(navArgument(TeacherLessonDetailDestination.recordIdArg) { type = NavType.StringType }),
-      enterTransition = { slideEnter() },
-      exitTransition = { slideExit() },
-    ) {
-      TeacherLessonDetailScreen(
-        navigateUp = { navController.navigateUp() }
-      )
-    }
   }
 
   // Handle incoming intents for deep links
@@ -451,9 +379,6 @@ fun navigateToTaskScreen(
     TaskType.HEALTHCARE_IMAGE_ANALYSIS -> 
       navController.navigate(MedicalAnalysisDestination.route)
 
-    // Teacher Tasks - route to new teacher lesson screen
-    TaskType.TEACHER_LESSON_PLANNER -> 
-      navController.navigate(TeacherLessonDestination.route)
     
     TaskType.TEST_TASK_1 -> {}
     TaskType.TEST_TASK_2 -> {}

@@ -102,24 +102,23 @@ enum class ChatInputType {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatPanel(
+  modelManagerViewModel: ModelManagerViewModel,
   task: Task,
   selectedModel: Model,
   viewModel: ChatViewModel,
-  modelManagerViewModel: ModelManagerViewModel,
   onSendMessage: (Model, List<ChatMessage>) -> Unit,
   onRunAgainClicked: (Model, ChatMessage) -> Unit,
-  onBenchmarkClicked: (Model, ChatMessage, Int, Int) -> Unit,
-  onStreamImageMessage: (Model, ChatMessageImage) -> Unit,
-  onStreamEnd: (Int) -> Unit,
-  onStopButtonClicked: () -> Unit,
-  onImageSelected: (Bitmap) -> Unit,
+  onBenchmarkClicked: (Model, ChatMessage, warmUpIterations: Int, benchmarkIterations: Int) -> Unit,
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
+  onStreamImageMessage: (Model, ChatMessageImage) -> Unit = { _, _ -> },
+  onStreamEnd: (Int) -> Unit = {},
+  onStopButtonClicked: () -> Unit = {},
+  onImageSelected: (Bitmap) -> Unit = {},
   chatInputType: ChatInputType = ChatInputType.TEXT,
   showStopButtonInInputWhenInProgress: Boolean = false,
-  hasPatientData: Boolean = false,
-  hasLessonData: Boolean = false,
   onSaveAnalysisClicked: (Model, ChatMessage) -> Unit = { _, _ -> },
+  hasPatientData: Boolean = false,
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
@@ -450,21 +449,6 @@ fun ChatPanel(
                     ) {
                       MessageActionButton(
                         label = "Save Analysis",
-                        icon = Icons.Outlined.Save,
-                        onClick = { onSaveAnalysisClicked(selectedModel, message) },
-                        enabled = !uiState.inProgress,
-                      )
-                    }
-                    
-                    // Save Lesson Plan button for teacher lesson planning
-                    if (
-                      hasLessonData &&
-                        message is ChatMessageText &&
-                        message.latencyMs >= 0 &&
-                        message.content.isNotBlank()
-                    ) {
-                      MessageActionButton(
-                        label = "Save Lesson Plan",
                         icon = Icons.Outlined.Save,
                         onClick = { onSaveAnalysisClicked(selectedModel, message) },
                         enabled = !uiState.inProgress,

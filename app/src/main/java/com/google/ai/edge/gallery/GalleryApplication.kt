@@ -20,7 +20,6 @@ import android.app.Application
 import com.google.ai.edge.gallery.common.writeLaunchInfo
 import com.google.ai.edge.gallery.data.DataStoreRepository
 import com.google.ai.edge.gallery.data.MedicalAnalysisRepository
-import com.google.ai.edge.gallery.data.TeacherLessonRepository
 import com.google.ai.edge.gallery.ui.theme.ThemeSettings
 import com.google.firebase.FirebaseApp
 import dagger.hilt.android.HiltAndroidApp
@@ -31,7 +30,6 @@ class GalleryApplication : Application() {
 
   @Inject lateinit var dataStoreRepository: DataStoreRepository
   @Inject lateinit var medicalAnalysisRepository: MedicalAnalysisRepository
-  @Inject lateinit var teacherLessonRepository: TeacherLessonRepository
 
   override fun onCreate() {
     super.onCreate()

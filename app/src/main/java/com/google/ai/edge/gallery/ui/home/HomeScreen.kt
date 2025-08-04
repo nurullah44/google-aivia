@@ -451,9 +451,7 @@ fun HomeScreen(
       title = "Teacher", 
       subtitle = "Educational AI for learning environments",
       tasks = listOf(
-        "Lesson Plans" to { 
-          navigateToTaskScreen(uiState.tasks.find { it.type.id == "teacher_lesson" }!!)
-        },
+        "Lesson Plans" to { /* TODO */ },
         "Assessments" to { /* TODO */ },
         "Explanations" to { /* TODO */ }
       ),
