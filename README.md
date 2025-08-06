@@ -27,6 +27,7 @@ Google AIVIA extends the core functionality of Google AI Edge Gallery with speci
 **Model Management**: Easy switching between different AI models with automatic download and management.
 
 **Multi-Modal Support**: Text, image, and audio processing capabilities.
+**Data Persistence**: Save and manage analysis results, lesson plans, and medical reports for future reference.
 
 ## Getting Started
 
