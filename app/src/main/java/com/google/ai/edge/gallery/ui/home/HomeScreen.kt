@@ -246,7 +246,7 @@ fun HomeScreen(
                 modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 40.dp)
               ) {
                 Text(
-                  text = "Google AI Edge",
+                  text = "Google AIVIA",
                   style = MaterialTheme.typography.displaySmall,
                   color = MaterialTheme.colorScheme.onSurface
                 )
@@ -438,9 +438,7 @@ fun HomeScreen(
       tasks = listOf(
         "Medical Image Analysis" to { 
           navigateToTaskScreen(uiState.tasks.find { it.type.id == "healthcare_image" }!!)
-        },
-        "Clinical Documentation" to { /* TODO */ },
-        "Medical Reference" to { /* TODO */ }
+        }
       ),
       onDismiss = { showDoctorMode = false }
     )
@@ -453,9 +451,7 @@ fun HomeScreen(
       tasks = listOf(
         "Lesson Plans" to { 
           navigateToTaskScreen(uiState.tasks.find { it.type.id == "teacher_lesson" }!!)
-        },
-        "Assessments" to { /* TODO */ },
-        "Explanations" to { /* TODO */ }
+        }
       ),
       onDismiss = { showTeacherMode = false }
     )
@@ -468,9 +464,7 @@ fun HomeScreen(
       tasks = listOf(
         "Crop Analysis" to { 
           navigateToTaskScreen(uiState.tasks.find { it.type.id == "farmer_crop_analysis" }!!)
-        },
-        "Resource Planning" to { /* TODO */ },
-        "Growth Tracking" to { /* TODO */ }
+        }
       ),
       onDismiss = { showFarmerMode = false }
     )
