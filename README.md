@@ -30,7 +30,7 @@ Google AIVIA extends the core functionality of Google AI Edge Gallery with speci
 
 ## Getting Started
 
-1. **Download**: [Download APK](https://github.com/google-ai-edge/gallery/releases/latest/download/google-aivia.apk)
+1. **Download**: [Download APK](https://github.com/nurullah44/google-aivia/releases/download/v1.0.0/google-aivia.apk)
 2. **Install**: Enable "Install from unknown sources" in Android settings
 3. **Launch**: Open the app and select your preferred mode
 4. **Download Models**: Choose and download AI models for offline use
